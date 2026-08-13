@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0F111A;
+  --bg-secondary: #171A23;
+  --card: #1F222E;
+  --border: #2A2E3D;
+
+  --primary: #FFC107;
+  --primary-hover: #FFD54F;
+  --accent: #FF8A00;
+
+  --success: #22C55E;
+  --danger: #EF4444;
+
+  --purple: #8B5CF6;
+  --blue: #3B82F6;
+  --jackpot: #FFD700;
+
+  --text: #E6E6E6;
+  --text-muted: #A1A5B0;
+
+  --disabled: #6B7280;
+}
+
+@theme {
+  --color-bg: var(--bg);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-card: var(--card);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-purple: var(--purple);
+  --color-blue: var(--blue);
+  --color-jackpot: var(--jackpot);
+  --color-text-main: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-disabled: var(--disabled);
+  --color-border-main: var(--border);
+
+  --font-press-start: var(--font-roboto-mono);
+  --font-inter: var(--font-be-vietnam);
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-inter), sans-serif;
+  font-size: 16px; /* Base font size increased for better readability */
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Custom Pixel/Retro Panels with 6px border radius */
+.retro-panel {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.retro-btn {
+  font-family: var(--font-press-start), sans-serif;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retro-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.retro-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.retro-btn:disabled {
+  background-color: var(--disabled);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--disabled);
+}
+
+/* Animations */
+@keyframes flash-success {
+  0%, 100% { background-color: var(--success); color: #000; }
+  50% { background-color: transparent; color: var(--success); }
+}
+
+.animate-flash-success {
+  animation: flash-success 1s infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s infinite ease-in-out;
+}
