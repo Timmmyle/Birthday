@@ -294,7 +294,7 @@ export default function Home() {
       }
     }
 
-    const rotations = 6 + Math.random() * 2;
+    const rotations = Math.floor(6 + Math.random() * 2);
     const duration = 3000;
     const startTime = performance.now();
 
@@ -968,11 +968,11 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Outcomes Table Grid */}
-                  <div className="grid grid-cols-2 gap-4 bg-bg p-3 rounded-[6px] border border-border-main/30">
+                  {/* Outcomes Table */}
+                  <div className="bg-bg p-3 rounded-[6px] border border-border-main/30">
                     <div className="space-y-1">
                       <div className="text-sm font-bold text-text-muted uppercase border-b border-border-main/20 pb-0.5 mb-1">
-                        Bảng hệ số nhận
+                        Bảng hệ số nhận cược
                       </div>
                       {WHEEL_SECTORS.map((item, i) => {
                         const isPositive = item.value > 0;
@@ -991,30 +991,6 @@ export default function Home() {
                           </div>
                         );
                       })}
-                    </div>
-
-                    <div className="flex flex-col justify-between border-l border-border-main/30 pl-3">
-                      <div>
-                        <div className="text-sm font-bold text-text-muted uppercase border-b border-border-main/20 pb-0.5 mb-1 text-center">
-                          Reroll miễn phí
-                        </div>
-                        <div className="text-lg font-mono font-bold text-success text-center py-1">
-                          {state.spin.rerollsRemaining}/5
-                        </div>
-                        <p className="text-sm text-text-muted text-center leading-tight">
-                          Dùng để quay lại kết quả vừa nhận
-                        </p>
-                      </div>
-
-                      {recentResult && !hasRerolled && state.spin.rerollsRemaining > 0 && (
-                        <button
-                          onClick={handleReroll}
-                          disabled={isSpinning}
-                          className="w-full retro-btn bg-purple text-black text-xs py-1.5 font-bold"
-                        >
-                          🎲 REROLL
-                        </button>
-                      )}
                     </div>
                   </div>
 
