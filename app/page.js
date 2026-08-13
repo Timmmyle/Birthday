@@ -301,7 +301,7 @@ export default function Home() {
     const sectorIndex = WHEEL_SECTORS.indexOf(outcome);
     const sectorAngleSize = 360 / WHEEL_SECTORS.length;
     const targetSectorAngle = sectorIndex * sectorAngleSize;
-    const targetDeg = (270 - (targetSectorAngle + sectorAngleSize / 2)) % 360;
+    const targetDeg = (360 + (270 - (targetSectorAngle + sectorAngleSize / 2)) % 360) % 360;
     const targetRotation = (targetDeg * Math.PI) / 180 + rotations * 2 * Math.PI;
 
     let lastTickAngle = 0;
@@ -429,7 +429,7 @@ export default function Home() {
     const sectorIndex = WHEEL_SECTORS.indexOf(outcome);
     const sectorAngleSize = 360 / WHEEL_SECTORS.length;
     const targetSectorAngle = sectorIndex * sectorAngleSize;
-    const targetDeg = (270 - (targetSectorAngle + sectorAngleSize / 2)) % 360;
+    const targetDeg = (360 + (270 - (targetSectorAngle + sectorAngleSize / 2)) % 360) % 360;
     const targetRotation = (targetDeg * Math.PI) / 180 + rotations * 2 * Math.PI;
 
     let lastTickAngle = 0;
@@ -440,6 +440,7 @@ export default function Home() {
       const ease = 1 - Math.pow(1 - progress, 3);
       const currentAngle = ease * targetRotation;
 
+      currentWheelAngleRef.current = currentAngle;
       drawWheel(currentAngle);
 
       const currentDeg = (currentAngle * 180 / Math.PI) % 360;
@@ -559,20 +560,20 @@ export default function Home() {
       let msg = "";
 
       if (diff < 200) {
-        reward = 10000;
-        msg = `Phản xạ: ${diff}ms - PERFECT! +10.000 xu`;
+        reward = 1000;
+        msg = `Phản xạ: ${diff}ms - PERFECT! +1.000 xu`;
         playJackpotSound();
       } else if (diff < 300) {
-        reward = 7000;
-        msg = `Phản xạ: ${diff}ms - EXCELLENT! +7.000 xu`;
+        reward = 750;
+        msg = `Phản xạ: ${diff}ms - EXCELLENT! +750 xu`;
         playWinSound();
       } else if (diff < 400) {
-        reward = 5000;
-        msg = `Phản xạ: ${diff}ms - GOOD! +5.000 xu`;
+        reward = 500;
+        msg = `Phản xạ: ${diff}ms - GOOD! +500 xu`;
         playWinSound();
       } else {
-        reward = 3000;
-        msg = `Phản xạ: ${diff}ms - HƠI CHẬM! +3.000 xu`;
+        reward = 250;
+        msg = `Phản xạ: ${diff}ms - HƠI CHẬM! +250 xu`;
         playExplosionSound();
       }
 
