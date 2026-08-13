@@ -158,7 +158,8 @@ export default function Home() {
 
   const updateStateAndSync = async (newState) => {
     setState(newState);
-    await syncGameState(newState);
+    const userId = user?.id || null;
+    await syncGameState(newState, userId);
   };
 
   // Draw wheel function
