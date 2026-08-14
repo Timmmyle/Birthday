@@ -109,10 +109,10 @@ export function addCoins(state, amount, reason) {
   const updatedCoins = state.coins + amount;
   const updatedLifetime = state.lifetimeEarned + amount;
   
-  // Check achievements
-  const newAchievements = [...state.achievements];
+  // Check achievements dynamically based on current coins
+  const newAchievements = [];
   MILESTONES.forEach(m => {
-    if (updatedLifetime >= m.value && !newAchievements.includes(m.name)) {
+    if (updatedCoins >= m.value) {
       newAchievements.push(m.name);
     }
   });
@@ -139,6 +139,14 @@ export function removeCoins(state, amount, reason) {
   const updatedCoins = Math.max(0, state.coins - amount);
   const updatedSpent = state.lifetimeSpent + amount;
 
+  // Check achievements dynamically based on current coins
+  const newAchievements = [];
+  MILESTONES.forEach(m => {
+    if (updatedCoins >= m.value) {
+      newAchievements.push(m.name);
+    }
+  });
+
   const tx = {
     id: genId(),
     timestamp: new Date().toISOString(),
@@ -152,7 +160,8 @@ export function removeCoins(state, amount, reason) {
     ...state,
     coins: updatedCoins,
     lifetimeSpent: updatedSpent,
-    transactions: [tx, ...state.transactions].slice(0, 100)
+    transactions: [tx, ...state.transactions].slice(0, 100),
+    achievements: newAchievements
   };
 }
 
@@ -486,7 +495,7 @@ export async function loadGameStateFromDB(userId = null) {
 
         // Rebuild achievements
         MILESTONES.forEach(m => {
-          if (loadedState.lifetimeEarned >= m.value) {
+          if (loadedState.coins >= m.value) {
             loadedState.achievements.push(m.name);
           }
         });

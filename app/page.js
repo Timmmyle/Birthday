@@ -27,26 +27,30 @@ import {
   playExplosionSound
 } from "@/utils/audio";
 
-// Wheel configurations
+// Wheel configurations (probability scaled to 1000 total)
 const STANDARD_SECTORS = [
-  { label: "+5%", value: 0.05, prob: 8, color: "#22C55E", type: "win" },
-  { label: "+10% JACKPOT", value: 0.10, prob: 2, color: "#FFD700", type: "jackpot" },
-  { label: "+2%", value: 0.02, prob: 15, color: "#22C55E", type: "win" },
-  { label: "+1%", value: 0.01, prob: 15, color: "#22C55E", type: "win" },
-  { label: "-1%", value: -0.01, prob: 30, color: "#EF4444", type: "loss" },
-  { label: "-2%", value: -0.02, prob: 20, color: "#EF4444", type: "loss" },
-  { label: "-5%", value: -0.05, prob: 10, color: "#EF4444", type: "loss" }
+  { label: "+5%", value: 0.05, prob: 50, color: "#22C55E", type: "win" },
+  { label: "+10% JACKPOT", value: 0.10, prob: 20, color: "#FFD700", type: "jackpot" },
+  { label: "+2%", value: 0.02, prob: 90, color: "#22C55E", type: "win" },
+  { label: "+1%", value: 0.01, prob: 90, color: "#22C55E", type: "win" },
+  { label: "-1%", value: -0.01, prob: 300, color: "#EF4444", type: "loss" },
+  { label: "-2%", value: -0.02, prob: 200, color: "#EF4444", type: "loss" },
+  { label: "-5%", value: -0.05, prob: 150, color: "#EF4444", type: "loss" },
+  { label: "-10%", value: -0.10, prob: 100, color: "#EF4444", type: "loss" }
 ];
 
 const HIGH_RISK_SECTORS = [
-  { label: "-20%", value: -0.20, prob: 20, color: "#EF4444", type: "loss" },
-  { label: "-10%", value: -0.10, prob: 20, color: "#EF4444", type: "loss" },
-  { label: "-5%", value: -0.05, prob: 15, color: "#EF4444", type: "loss" },
-  { label: "0", value: 0.0, prob: 10, color: "#6B7280", type: "neutral" },
-  { label: "+5%", value: 0.05, prob: 15, color: "#22C55E", type: "win" },
-  { label: "+10%", value: 0.10, prob: 10, color: "#22C55E", type: "win" },
-  { label: "+20%", value: 0.20, prob: 7, color: "#22C55E", type: "win" },
-  { label: "+50% JACKPOT", value: 0.50, prob: 3, color: "#FFD700", type: "jackpot" }
+  { label: "-100%", value: -1.00, prob: 30, color: "#EF4444", type: "loss" },
+  { label: "-50%", value: -0.50, prob: 50, color: "#EF4444", type: "loss" },
+  { label: "-20%", value: -0.20, prob: 220, color: "#EF4444", type: "loss" },
+  { label: "-10%", value: -0.10, prob: 200, color: "#EF4444", type: "loss" },
+  { label: "-5%", value: -0.05, prob: 150, color: "#EF4444", type: "loss" },
+  { label: "0", value: 0.00, prob: 100, color: "#6B7280", type: "neutral" },
+  { label: "+5%", value: 0.05, prob: 100, color: "#22C55E", type: "win" },
+  { label: "+10%", value: 0.10, prob: 80, color: "#22C55E", type: "win" },
+  { label: "+20%", value: 0.20, prob: 35, color: "#22C55E", type: "win" },
+  { label: "+50% JACKPOT", value: 0.50, prob: 25, color: "#FFD700", type: "jackpot" },
+  { label: "+100% MEGA", value: 1.00, prob: 10, color: "#FFD700", type: "jackpot" }
 ];
 
 export default function Home() {
@@ -115,12 +119,7 @@ export default function Home() {
       const dbState = await loadGameStateFromDB(userId);
       
       let initialData = { ...dbState };
-      // Check and seed initial data to match layout reference
-      if (initialData.coins === 50000 && initialData.lifetimeEarned === 50000) {
-        initialData.lifetimeEarned = 820000;
-        initialData.daily.streak = 1; // 1 day streak
-        initialData.achievements = ["🥉 Beginner", "🥈 Coin Collector", "🥇 Coin Hunter"];
-      }
+      // Check and seed initial data to match layout reference (Removed force-seed to avoid overwrite)
 
       const resetState = checkDailyReset(initialData);
       setState(resetState);
@@ -190,7 +189,7 @@ export default function Home() {
     ctx.translate(cx, cy);
     ctx.rotate(angle);
 
-    const activeSectors = (state && (bet / state.coins) >= 0.90) ? HIGH_RISK_SECTORS : STANDARD_SECTORS;
+    const activeSectors = (state && (bet / state.coins) >= 0.50) ? HIGH_RISK_SECTORS : STANDARD_SECTORS;
     const sliceAngle = (2 * Math.PI) / activeSectors.length;
 
     activeSectors.forEach((sec, idx) => {
@@ -213,7 +212,7 @@ export default function Home() {
       ctx.fillStyle = sec.type === "jackpot" ? "#000" : "#E6E6E6";
       ctx.font = 'bold 13px "Roboto Mono", sans-serif';
       
-      let label = sec.label.replace(" JACKPOT", "");
+      let label = sec.label.replace(" JACKPOT", "").replace(" MEGA", "");
       ctx.fillText(label, r - 12, 0);
       ctx.restore();
     });
@@ -263,29 +262,30 @@ export default function Home() {
   let riskColor = "text-success";
   
   let winMultiplier = 1.0;
-  let lossMultiplier = 1.0;
+  let lossMultiplier = 1.5;
 
   if (riskRatio >= 0.90) {
     riskText = "ALL-IN ☠️";
     riskColor = "text-danger animate-pulse font-bold";
     winMultiplier = 2.0;
-    lossMultiplier = 2.5;
+    lossMultiplier = 5.0;
   } else if (riskRatio >= 0.50) {
     riskText = "CAO 🔴";
     riskColor = "text-accent font-bold";
     winMultiplier = 1.5;
-    lossMultiplier = 1.75;
+    lossMultiplier = 2.5;
   } else if (riskRatio >= 0.25) {
     riskText = "TRUNG BÌNH 🟡";
     riskColor = "text-yellow-400";
   }
 
-  const activeSectors = riskRatio >= 0.90 ? HIGH_RISK_SECTORS : STANDARD_SECTORS;
+  const activeSectors = riskRatio >= 0.50 ? HIGH_RISK_SECTORS : STANDARD_SECTORS;
 
   // Spin Wheel implementation
   const handleSpin = (isFree = false) => {
     if (!state || isSpinning) return;
-    if (!isFree && state.coins < bet) {
+    const actualBet = isFree ? 0 : bet;
+    if (!isFree && state.coins < actualBet) {
       alert("Không đủ coin để cược!");
       return;
     }
@@ -296,7 +296,7 @@ export default function Home() {
 
     // Calculate outcome based on probabilities
     const spinRiskRatio = actualBet / state.coins;
-    const spinSectors = spinRiskRatio >= 0.90 ? HIGH_RISK_SECTORS : STANDARD_SECTORS;
+    const spinSectors = spinRiskRatio >= 0.50 ? HIGH_RISK_SECTORS : STANDARD_SECTORS;
     const totalProb = spinSectors.reduce((sum, s) => sum + s.prob, 0);
 
     const rand = Math.floor(Math.random() * totalProb);
@@ -354,21 +354,29 @@ export default function Home() {
     const isPositive = outcome.value > 0;
     
     // Determine multipliers dynamically based on spin time risk ratio
-    const spinRiskRatio = actualBet / state.coins;
     let spinWinMultiplier = 1.0;
-    let spinLossMultiplier = 1.0;
-    if (spinRiskRatio >= 0.90) {
-      spinWinMultiplier = 2.0;
-      spinLossMultiplier = 2.5;
-    } else if (spinRiskRatio >= 0.50) {
-      spinWinMultiplier = 1.5;
-      spinLossMultiplier = 1.75;
+    let spinLossMultiplier = 1.5;
+    
+    if (fromReroll && recentResult) {
+      // Reuse multipliers from original spin
+      spinWinMultiplier = recentResult.winMultiplierUsed || 1.0;
+      spinLossMultiplier = recentResult.lossMultiplierUsed || 1.5;
+    } else {
+      const spinRiskRatio = actualBet / state.coins;
+      if (spinRiskRatio >= 0.90) {
+        spinWinMultiplier = 2.0;
+        spinLossMultiplier = 5.0;
+      } else if (spinRiskRatio >= 0.50) {
+        spinWinMultiplier = 1.5;
+        spinLossMultiplier = 2.5;
+      }
     }
 
     const changePercent = Math.abs(outcome.value);
+    const applyMultiplier = changePercent < 0.50;
     const finalChangePercent = isPositive 
-      ? (changePercent * spinWinMultiplier) 
-      : (changePercent * spinLossMultiplier);
+      ? (changePercent * (applyMultiplier ? spinWinMultiplier : 1.0)) 
+      : (changePercent * (applyMultiplier ? spinLossMultiplier : 1.0));
 
     if (isFree) {
       changeAmount = isPositive ? Math.floor(10000 * outcome.value) : 0;
@@ -439,8 +447,10 @@ export default function Home() {
     setIsSpinning(true);
     setRecentResult(null);
 
-    const spinRiskRatio = recentResult.isFree ? 0 : (recentResult.bet / state.coins);
-    const spinSectors = spinRiskRatio >= 0.90 ? HIGH_RISK_SECTORS : STANDARD_SECTORS;
+    // Rebuild original coins before the spin to keep the exact same risk tier on Reroll
+    const originalCoins = state.coins + (recentResult.isPositive ? -recentResult.changeAmount : recentResult.changeAmount);
+    const spinRiskRatio = recentResult.isFree ? 0 : (recentResult.bet / originalCoins);
+    const spinSectors = spinRiskRatio >= 0.50 ? HIGH_RISK_SECTORS : STANDARD_SECTORS;
     const totalProb = spinSectors.reduce((sum, s) => sum + s.prob, 0);
 
     const rand = Math.floor(Math.random() * totalProb);
@@ -632,7 +642,7 @@ export default function Home() {
   };
 
   // Milestones & Ranks
-  const earned = state ? state.lifetimeEarned : 820000;
+  const earned = state ? state.coins : 50000;
   const nextMilestone = MILESTONES.find(m => earned < m.value) || { name: "Birthday Legend", value: 5000000, rewardName: "Mechanical Keyboard" };
   const percentage = Math.min(100, Math.round((earned / nextMilestone.value) * 100));
 
@@ -1025,8 +1035,10 @@ export default function Home() {
                       {activeSectors.map((item, i) => {
                         const isPositive = item.value > 0;
                         const isNeutral = item.value === 0;
-                        const multiplier = isPositive ? winMultiplier : lossMultiplier;
-                        const finalChangePercent = Math.abs(item.value) * multiplier;
+                        const changePercent = Math.abs(item.value);
+                        const applyMultiplier = changePercent < 0.50;
+                        const multiplier = applyMultiplier ? (isPositive ? winMultiplier : lossMultiplier) : 1.0;
+                        const finalChangePercent = changePercent * multiplier;
                         const val = Math.floor(bet * finalChangePercent);
 
                         return (
@@ -1282,9 +1294,6 @@ export default function Home() {
                       onClick={async () => {
                         if (confirm("Reset game?")) {
                           const clean = { ...INITIAL_STATE };
-                          clean.lifetimeEarned = 820000;
-                          clean.daily.streak = 1;
-                          clean.achievements = ["🥉 Beginner", "🥈 Coin Collector", "🥇 Coin Hunter"];
                           await updateStateAndSync(clean);
                           alert("Đã reset!");
                         }
