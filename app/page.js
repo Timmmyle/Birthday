@@ -373,10 +373,21 @@ export default function Home() {
     }
 
     const changePercent = Math.abs(outcome.value);
-    const applyMultiplier = changePercent < 0.50;
-    const finalChangePercent = isPositive 
-      ? (changePercent * (applyMultiplier ? spinWinMultiplier : 1.0)) 
-      : (changePercent * (applyMultiplier ? spinLossMultiplier : 1.0));
+    let finalChangePercent = 0;
+    if (Math.abs(spinWinMultiplier - 1.5) < 0.01) {
+      if (Math.abs(changePercent - 0.20) < 0.01) finalChangePercent = 0.40;
+      else if (Math.abs(changePercent - 0.50) < 0.01) finalChangePercent = 0.75;
+      else if (Math.abs(changePercent - 1.00) < 0.01) finalChangePercent = 1.00;
+      else {
+        finalChangePercent = isPositive 
+          ? (changePercent * spinWinMultiplier) 
+          : Math.min(1.0, changePercent * spinLossMultiplier);
+      }
+    } else {
+      finalChangePercent = isPositive 
+        ? (changePercent * spinWinMultiplier) 
+        : Math.min(1.0, changePercent * spinLossMultiplier);
+    }
 
     if (isFree) {
       changeAmount = isPositive ? Math.floor(10000 * outcome.value) : 0;
@@ -1036,9 +1047,22 @@ export default function Home() {
                         const isPositive = item.value > 0;
                         const isNeutral = item.value === 0;
                         const changePercent = Math.abs(item.value);
-                        const applyMultiplier = changePercent < 0.50;
-                        const multiplier = applyMultiplier ? (isPositive ? winMultiplier : lossMultiplier) : 1.0;
-                        const finalChangePercent = changePercent * multiplier;
+                        
+                        let finalChangePercent = 0;
+                        if (Math.abs(winMultiplier - 1.5) < 0.01) {
+                          if (Math.abs(changePercent - 0.20) < 0.01) finalChangePercent = 0.40;
+                          else if (Math.abs(changePercent - 0.50) < 0.01) finalChangePercent = 0.75;
+                          else if (Math.abs(changePercent - 1.00) < 0.01) finalChangePercent = 1.00;
+                          else {
+                            finalChangePercent = isPositive 
+                              ? (changePercent * winMultiplier) 
+                              : Math.min(1.0, changePercent * lossMultiplier);
+                          }
+                        } else {
+                          finalChangePercent = isPositive 
+                            ? (changePercent * winMultiplier) 
+                            : Math.min(1.0, changePercent * lossMultiplier);
+                        }
                         const val = Math.floor(bet * finalChangePercent);
 
                         return (
