@@ -27,8 +27,8 @@ import {
   playExplosionSound
 } from "@/utils/audio";
 
-// Slices definition (7 equal slices)
-const WHEEL_SECTORS = [
+// Wheel configurations
+const STANDARD_SECTORS = [
   { label: "+5%", value: 0.05, prob: 8, color: "#22C55E", type: "win" },
   { label: "+10% JACKPOT", value: 0.10, prob: 2, color: "#FFD700", type: "jackpot" },
   { label: "+2%", value: 0.02, prob: 15, color: "#22C55E", type: "win" },
@@ -36,6 +36,17 @@ const WHEEL_SECTORS = [
   { label: "-1%", value: -0.01, prob: 30, color: "#EF4444", type: "loss" },
   { label: "-2%", value: -0.02, prob: 20, color: "#EF4444", type: "loss" },
   { label: "-5%", value: -0.05, prob: 10, color: "#EF4444", type: "loss" }
+];
+
+const HIGH_RISK_SECTORS = [
+  { label: "-20%", value: -0.20, prob: 20, color: "#EF4444", type: "loss" },
+  { label: "-10%", value: -0.10, prob: 20, color: "#EF4444", type: "loss" },
+  { label: "-5%", value: -0.05, prob: 15, color: "#EF4444", type: "loss" },
+  { label: "0", value: 0.0, prob: 10, color: "#6B7280", type: "neutral" },
+  { label: "+5%", value: 0.05, prob: 15, color: "#22C55E", type: "win" },
+  { label: "+10%", value: 0.10, prob: 10, color: "#22C55E", type: "win" },
+  { label: "+20%", value: 0.20, prob: 7, color: "#22C55E", type: "win" },
+  { label: "+50% JACKPOT", value: 0.50, prob: 3, color: "#FFD700", type: "jackpot" }
 ];
 
 export default function Home() {
@@ -154,7 +165,7 @@ export default function Home() {
     if (activeTab === "spin" && state) {
       drawWheel(currentWheelAngleRef.current);
     }
-  }, [activeTab, state]);
+  }, [activeTab, state, bet]);
 
   const updateStateAndSync = async (newState) => {
     setState(newState);
@@ -179,9 +190,10 @@ export default function Home() {
     ctx.translate(cx, cy);
     ctx.rotate(angle);
 
-    const sliceAngle = (2 * Math.PI) / WHEEL_SECTORS.length;
+    const activeSectors = (state && (bet / state.coins) >= 0.90) ? HIGH_RISK_SECTORS : STANDARD_SECTORS;
+    const sliceAngle = (2 * Math.PI) / activeSectors.length;
 
-    WHEEL_SECTORS.forEach((sec, idx) => {
+    activeSectors.forEach((sec, idx) => {
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.arc(0, 0, r, idx * sliceAngle, (idx + 1) * sliceAngle);
@@ -247,29 +259,28 @@ export default function Home() {
   };
 
   const riskRatio = state ? (bet / state.coins) : 0;
-  let riskText = "THẤP";
+  let riskText = "THẤP 🟢";
   let riskColor = "text-success";
-  if (riskRatio > 0.99) {
+  
+  let winMultiplier = 1.0;
+  let lossMultiplier = 1.0;
+
+  if (riskRatio >= 0.90) {
     riskText = "ALL-IN ☠️";
     riskColor = "text-danger animate-pulse font-bold";
-  } else if (riskRatio >= 0.75) {
-    riskText = "RẤT CAO 🔴";
-    riskColor = "text-danger";
+    winMultiplier = 2.0;
+    lossMultiplier = 2.5;
   } else if (riskRatio >= 0.50) {
-    riskText = "CAO 🟠";
-    riskColor = "text-accent";
+    riskText = "CAO 🔴";
+    riskColor = "text-accent font-bold";
+    winMultiplier = 1.5;
+    lossMultiplier = 1.75;
   } else if (riskRatio >= 0.25) {
     riskText = "TRUNG BÌNH 🟡";
     riskColor = "text-yellow-400";
   }
 
-  // Scaling Factor
-  let scalingFactor = 1.0;
-  if (riskRatio > 0.99) scalingFactor = 0.35;
-  else if (riskRatio >= 0.75) scalingFactor = 0.50;
-  else if (riskRatio >= 0.50) scalingFactor = 0.70;
-  else if (riskRatio >= 0.25) scalingFactor = 0.85;
-  else if (riskRatio >= 0.10) scalingFactor = 0.95;
+  const activeSectors = riskRatio >= 0.90 ? HIGH_RISK_SECTORS : STANDARD_SECTORS;
 
   // Spin Wheel implementation
   const handleSpin = (isFree = false) => {
@@ -284,10 +295,14 @@ export default function Home() {
     setHasRerolled(false);
 
     // Calculate outcome based on probabilities
-    const rand = Math.floor(Math.random() * 100);
-    let outcome = WHEEL_SECTORS[0];
+    const spinRiskRatio = actualBet / state.coins;
+    const spinSectors = spinRiskRatio >= 0.90 ? HIGH_RISK_SECTORS : STANDARD_SECTORS;
+    const totalProb = spinSectors.reduce((sum, s) => sum + s.prob, 0);
+
+    const rand = Math.floor(Math.random() * totalProb);
+    let outcome = spinSectors[0];
     let cumulative = 0;
-    for (const s of WHEEL_SECTORS) {
+    for (const s of spinSectors) {
       cumulative += s.prob;
       if (rand < cumulative) {
         outcome = s;
@@ -299,8 +314,8 @@ export default function Home() {
     const duration = 3000;
     const startTime = performance.now();
 
-    const sectorIndex = WHEEL_SECTORS.indexOf(outcome);
-    const sectorAngleSize = 360 / WHEEL_SECTORS.length;
+    const sectorIndex = spinSectors.indexOf(outcome);
+    const sectorAngleSize = 360 / spinSectors.length;
     const targetSectorAngle = sectorIndex * sectorAngleSize;
     const targetDeg = (360 + (270 - (targetSectorAngle + sectorAngleSize / 2)) % 360) % 360;
     const targetRotation = (targetDeg * Math.PI) / 180 + rotations * 2 * Math.PI;
@@ -337,22 +352,33 @@ export default function Home() {
     const actualBet = isFree ? 0 : bet;
     let changeAmount = 0;
     const isPositive = outcome.value > 0;
-    const currentScaling = isPositive ? scalingFactor : 1.0;
+    
+    // Determine multipliers dynamically based on spin time risk ratio
+    const spinRiskRatio = actualBet / state.coins;
+    let spinWinMultiplier = 1.0;
+    let spinLossMultiplier = 1.0;
+    if (spinRiskRatio >= 0.90) {
+      spinWinMultiplier = 2.0;
+      spinLossMultiplier = 2.5;
+    } else if (spinRiskRatio >= 0.50) {
+      spinWinMultiplier = 1.5;
+      spinLossMultiplier = 1.75;
+    }
 
-    if (isPositive) {
-      changeAmount = Math.floor(actualBet * outcome.value * currentScaling);
+    const changePercent = Math.abs(outcome.value);
+    const finalChangePercent = isPositive 
+      ? (changePercent * spinWinMultiplier) 
+      : (changePercent * spinLossMultiplier);
+
+    if (isFree) {
+      changeAmount = isPositive ? Math.floor(10000 * outcome.value) : 0;
     } else {
-      changeAmount = Math.floor(actualBet * Math.abs(outcome.value));
+      changeAmount = Math.floor(actualBet * finalChangePercent);
     }
 
     let updatedState = { ...state };
     if (isFree) {
       updatedState.spin.freeSpinUsed = true;
-      if (isPositive) {
-        changeAmount = Math.floor(10000 * outcome.value);
-      } else {
-        changeAmount = 0;
-      }
     }
 
     if (isPositive) {
@@ -386,7 +412,8 @@ export default function Home() {
       bet: actualBet,
       changeAmount,
       isPositive,
-      scalingUsed: currentScaling
+      winMultiplierUsed: spinWinMultiplier,
+      lossMultiplierUsed: spinLossMultiplier
     });
 
     await updateStateAndSync(updatedState);
@@ -412,10 +439,14 @@ export default function Home() {
     setIsSpinning(true);
     setRecentResult(null);
 
-    const rand = Math.floor(Math.random() * 100);
-    let outcome = WHEEL_SECTORS[0];
+    const spinRiskRatio = recentResult.isFree ? 0 : (recentResult.bet / state.coins);
+    const spinSectors = spinRiskRatio >= 0.90 ? HIGH_RISK_SECTORS : STANDARD_SECTORS;
+    const totalProb = spinSectors.reduce((sum, s) => sum + s.prob, 0);
+
+    const rand = Math.floor(Math.random() * totalProb);
+    let outcome = spinSectors[0];
     let cumulative = 0;
-    for (const s of WHEEL_SECTORS) {
+    for (const s of spinSectors) {
       cumulative += s.prob;
       if (rand < cumulative) {
         outcome = s;
@@ -427,8 +458,8 @@ export default function Home() {
     const duration = 2000;
     const startTime = performance.now();
 
-    const sectorIndex = WHEEL_SECTORS.indexOf(outcome);
-    const sectorAngleSize = 360 / WHEEL_SECTORS.length;
+    const sectorIndex = spinSectors.indexOf(outcome);
+    const sectorAngleSize = 360 / spinSectors.length;
     const targetSectorAngle = sectorIndex * sectorAngleSize;
     const targetDeg = (360 + (270 - (targetSectorAngle + sectorAngleSize / 2)) % 360) % 360;
     const targetRotation = (targetDeg * Math.PI) / 180 + rotations * 2 * Math.PI;
@@ -565,16 +596,16 @@ export default function Home() {
         msg = `Phản xạ: ${diff}ms - PERFECT! +1.000 xu`;
         playJackpotSound();
       } else if (diff < 300) {
-        reward = 750;
-        msg = `Phản xạ: ${diff}ms - EXCELLENT! +750 xu`;
+        reward = 500;
+        msg = `Phản xạ: ${diff}ms - EXCELLENT! +500 xu`;
         playWinSound();
       } else if (diff < 400) {
-        reward = 500;
-        msg = `Phản xạ: ${diff}ms - GOOD! +500 xu`;
-        playWinSound();
+        reward = -250;
+        msg = `Phản xạ: ${diff}ms - HƠI CHẬM! -250 xu`;
+        playExplosionSound();
       } else {
-        reward = 250;
-        msg = `Phản xạ: ${diff}ms - HƠI CHẬM! +250 xu`;
+        reward = -500;
+        msg = `Phản xạ: ${diff}ms - QUÁ CHẬM! -500 xu`;
         playExplosionSound();
       }
 
@@ -587,7 +618,12 @@ export default function Home() {
         }
       }
 
-      let updated = addCoins(state, reward, `Reaction Game: ${diff}ms`);
+      let updated;
+      if (reward >= 0) {
+        updated = addCoins(state, reward, `Reaction Game: ${diff}ms`);
+      } else {
+        updated = removeCoins(state, Math.abs(reward), `Reaction Game: ${diff}ms`);
+      }
       updated = completeQuest(updated, "playMiniGame");
       
       await updateStateAndSync(updated);
@@ -899,10 +935,15 @@ export default function Home() {
                   Kết quả: <span className={recentResult.isPositive ? "text-success" : "text-danger"}>{recentResult.outcome.label}</span>
                 </h4>
                 <p className="text-sm text-text-muted mt-0.5">
-                  {recentResult.isPositive 
-                    ? `Nhận được +${recentResult.changeAmount.toLocaleString()} xu (Hiệu suất cược: ${Math.round(recentResult.scalingUsed * 100)}%)`
-                    : `Bị trừ -${recentResult.changeAmount.toLocaleString()} xu.`
-                  }
+                  {recentResult.isFree ? (
+                    recentResult.isPositive 
+                      ? `Nhận được +${recentResult.changeAmount.toLocaleString()} xu (Lượt quay miễn phí)`
+                      : "Không mất xu (Lượt quay miễn phí)"
+                  ) : (
+                    recentResult.isPositive 
+                      ? `Nhận được +${recentResult.changeAmount.toLocaleString()} xu (Nhân hệ số thắng x${recentResult.winMultiplierUsed || 1.0})`
+                      : `Bị trừ -${recentResult.changeAmount.toLocaleString()} xu (Nhân hệ số thua x${recentResult.lossMultiplierUsed || 1.0})`
+                  )}
                 </p>
               </div>
               <button
@@ -951,7 +992,7 @@ export default function Home() {
                   </div>
 
                   {/* Slider */}
-                  <div className="space-y-1">
+                  <div className="space-y-3">
                     <input
                       type="range"
                       min={1000}
@@ -967,6 +1008,12 @@ export default function Home() {
                       <span>{Math.round(riskRatio * 100)}% ({riskText})</span>
                       <span>MAX</span>
                     </div>
+                    {/* Dynamic Multiplier Badge */}
+                    <div className="bg-bg-secondary/60 p-2.5 rounded border border-border-main/20 text-xs flex justify-around text-center font-mono">
+                      <div>Hệ số thắng: <span className="text-success font-bold">x{winMultiplier.toFixed(2)}</span></div>
+                      <div className="border-r border-border-main/20"></div>
+                      <div>Hệ số thua: <span className="text-danger font-bold">x{lossMultiplier.toFixed(2)}</span></div>
+                    </div>
                   </div>
 
                   {/* Outcomes Table */}
@@ -975,18 +1022,18 @@ export default function Home() {
                       <div className="text-sm font-bold text-text-muted uppercase border-b border-border-main/20 pb-0.5 mb-1">
                         Bảng hệ số nhận cược
                       </div>
-                      {WHEEL_SECTORS.map((item, i) => {
+                      {activeSectors.map((item, i) => {
                         const isPositive = item.value > 0;
-                        const finalScale = isPositive ? scalingFactor : 1.0;
-                        const val = isPositive 
-                          ? Math.floor(bet * item.value * finalScale)
-                          : Math.floor(bet * Math.abs(item.value));
+                        const isNeutral = item.value === 0;
+                        const multiplier = isPositive ? winMultiplier : lossMultiplier;
+                        const finalChangePercent = Math.abs(item.value) * multiplier;
+                        const val = Math.floor(bet * finalChangePercent);
 
                         return (
                           <div key={i} className="flex justify-between text-sm font-mono">
-                            <span className={item.type === "loss" ? "text-danger" : "text-success"}>{item.label}</span>
-                            <span className={isPositive ? "text-success" : "text-danger"}>
-                              {isPositive ? "+" : "-"}
+                            <span className={isNeutral ? "text-text-muted" : item.type === "loss" ? "text-danger" : "text-success"}>{item.label}</span>
+                            <span className={isNeutral ? "text-text-muted" : isPositive ? "text-success" : "text-danger"}>
+                              {isNeutral ? "" : isPositive ? "+" : "-"}
                               {val.toLocaleString()}
                             </span>
                           </div>
